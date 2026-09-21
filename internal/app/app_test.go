@@ -1,8 +1,10 @@
 package app
 
 import (
+	"archive/tar"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +13,7 @@ import (
 
 	"filippo.io/age"
 
+	"github.com/desktopgame/backup/internal/pipeline"
 	"github.com/desktopgame/backup/internal/snapshot"
 )
 
@@ -125,6 +128,73 @@ source = %q
 	}
 	if _, err := os.Stat(filepath.Join(restoreDir, "data", "node_modules", "skip.js")); err == nil {
 		t.Error("ignored file should not be restored")
+	}
+}
+
+func writeSnapshotFile(t *testing.T, id *age.X25519Identity, path string) {
+	t.Helper()
+	var buf bytes.Buffer
+	err := pipeline.Encrypt(&buf, []age.Recipient{id.Recipient()}, func(w io.Writer) error {
+		tw := tar.NewWriter(w)
+		dir := &tar.Header{Name: "data/", Typeflag: tar.TypeDir, Mode: 0o755}
+		if err := tw.WriteHeader(dir); err != nil {
+			return err
+		}
+		file := &tar.Header{Name: "data/x.txt", Typeflag: tar.TypeReg, Mode: 0o644, Size: int64(len("hello"))}
+		if err := tw.WriteHeader(file); err != nil {
+			return err
+		}
+		if _, err := tw.Write([]byte("hello")); err != nil {
+			return err
+		}
+		return tw.Close()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRestoreLocalFileWithoutConfig verifies that restoring a local snapshot
+// file does not require a configuration file.
+func TestRestoreLocalFileWithoutConfig(t *testing.T) {
+	id, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	snapPath := filepath.Join(root, "vps-20260921-203000.tar.zst.age")
+	writeSnapshotFile(t, id, snapPath)
+
+	idPath := filepath.Join(root, "id.txt")
+	if err := os.WriteFile(idPath, []byte(id.String()+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	out := filepath.Join(root, "restore")
+	buf := &bytes.Buffer{}
+	a := New()
+	a.Stdout = buf
+	a.Stderr = buf
+
+	// Point -c at a nonexistent config to prove it is not read for local files.
+	args := []string{
+		"restore", snapPath,
+		"--identity", idPath,
+		"--output", out,
+		"-c", filepath.Join(root, "does-not-exist"),
+	}
+	if code := a.Main(args); code != 0 {
+		t.Fatalf("restore exit %d: %s", code, buf.String())
+	}
+	got, err := os.ReadFile(filepath.Join(out, "data", "x.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hello" {
+		t.Errorf("restored content = %q", got)
 	}
 }
 

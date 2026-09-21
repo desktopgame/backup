@@ -160,7 +160,7 @@ backup run                 新しいバックアップを作成してアップ�
 backup check               設定とストレージ接続を検証
 backup list                利用可能なスナップショットを一覧表示
 backup prune [--dry-run]   保持ルールを適用
-backup restore <snapshot>  スナップショットを復元
+backup restore <snapshot|file>  スナップショットを復元
 backup keygen [-o file]    age の identity と recipient を生成
 backup version             バージョンを表示
 ```
@@ -359,11 +359,38 @@ monthly = 6
 
 ## 復元
 
+### ストレージから復元
+
 ```sh
 backup restore desktop-20260921-170000.tar.zst.age --output ./restore --identity identity.txt
 ```
 
 処理は逆順で、ストレージ -> age 復号 -> zstd 展開 -> tar 展開となります。
+
+### ローカルファイルから直接復元
+
+引数が既存のローカルファイルを指している場合、ストレージを開かず、また設定
+ファイルも読まずにそのファイルを直接復元します。SFTP で自宅 PC へ送られた
+スナップショットを、その自宅 PC 上でそのまま展開したいときに使います。
+
+```sh
+backup restore C:\Backups\vps\vps-20260921-203000.tar.zst.age \
+  --identity identity.txt \
+  --output ./restore
+```
+
+Linux の場合:
+
+```sh
+backup restore /srv/backup/desktop/vps-20260921-203000.tar.zst.age \
+  --identity identity.txt \
+  --output ./restore
+```
+
+- 引数が存在しない場合は、従来どおり設定ファイルのストレージから探します。
+- ローカルファイル復元では `-c` / `--config` は不要です。
+- 復号・展開の処理はストレージ経由と共通です。
+
 展開時は絶対パスや出力先ディレクトリの外へ出るエントリを拒否し、書き込み中
 にシンボリックリンクをたどりません。
 

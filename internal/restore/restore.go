@@ -19,26 +19,47 @@ import (
 
 // Restore streams the named snapshot from st into outDir.
 func Restore(ctx context.Context, st storage.Storage, name, outDir string, identities []age.Identity) error {
-	if len(identities) == 0 {
-		return fmt.Errorf("no age identity supplied (use --identity or BACKUP_AGE_IDENTITY)")
-	}
-
 	rc, err := st.Open(ctx, name)
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
+	return RestoreReader(rc, outDir, identities)
+}
 
-	decrypted, err := age.Decrypt(rc, identities...)
+// RestoreFile restores a snapshot stored as a local file.
+func RestoreFile(path, outDir string, identities []age.Identity) error {
+	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("decrypting %s: %w", name, err)
+		return fmt.Errorf("cannot open snapshot %s: %w", path, err)
+	}
+	defer f.Close()
+	return RestoreReader(f, outDir, identities)
+}
+
+// RestoreReader decrypts, decompresses and extracts a snapshot from r. It is
+// the common entry point shared by file and storage based restores.
+func RestoreReader(r io.Reader, outDir string, identities []age.Identity) error {
+	if len(identities) == 0 {
+		return fmt.Errorf("no age identity supplied (use --identity or BACKUP_AGE_IDENTITY)")
+	}
+
+	decrypted, err := age.Decrypt(r, identities...)
+	if err != nil {
+		return fmt.Errorf("decrypting snapshot: %w", err)
 	}
 	zr, err := zstd.NewReader(decrypted)
 	if err != nil {
-		return fmt.Errorf("decompressing %s: %w", name, err)
+		return fmt.Errorf("decompressing snapshot: %w", err)
 	}
 	defer zr.Close()
 
+	return Extract(outDir, zr)
+}
+
+// Extract writes a tar stream into outDir, rejecting entries that would escape
+// the output directory or write through a symlink.
+func Extract(outDir string, r io.Reader) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return err
 	}
@@ -47,7 +68,7 @@ func Restore(ctx context.Context, st storage.Storage, name, outDir string, ident
 		return err
 	}
 
-	tr := tar.NewReader(zr)
+	tr := tar.NewReader(r)
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {

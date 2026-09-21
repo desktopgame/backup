@@ -159,3 +159,82 @@ func TestSecureJoin(t *testing.T) {
 		t.Errorf("secureJoin = %q, want %q", got, want)
 	}
 }
+
+func sampleArchive(t *testing.T, tw *tar.Writer) {
+	t.Helper()
+	writeHeader(t, tw, "data/", tar.TypeDir, 0o755, 0, "")
+	writeHeader(t, tw, "data/x.txt", tar.TypeReg, 0o644, int64(len("hello")), "")
+	if _, err := tw.Write([]byte("hello")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRestoreReader(t *testing.T) {
+	id, _ := age.GenerateX25519Identity()
+	data := buildEncrypted(t, id, func(tw *tar.Writer) { sampleArchive(t, tw) })
+
+	out := filepath.Join(t.TempDir(), "out")
+	if err := RestoreReader(bytes.NewReader(data), out, []age.Identity{id}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "data", "x.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hello" {
+		t.Errorf("content = %q", got)
+	}
+}
+
+func TestRestoreFile(t *testing.T) {
+	id, _ := age.GenerateX25519Identity()
+	data := buildEncrypted(t, id, func(tw *tar.Writer) { sampleArchive(t, tw) })
+
+	path := filepath.Join(t.TempDir(), "vps-20260921-203000.tar.zst.age")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "out")
+	if err := RestoreFile(path, out, []age.Identity{id}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "data", "x.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hello" {
+		t.Errorf("content = %q", got)
+	}
+}
+
+func TestRestoreFileMissing(t *testing.T) {
+	if err := RestoreFile(filepath.Join(t.TempDir(), "missing"), t.TempDir(), nil); err == nil {
+		t.Fatal("expected an error for a missing file")
+	}
+}
+
+func TestRestoreReaderRequiresIdentity(t *testing.T) {
+	id, _ := age.GenerateX25519Identity()
+	data := buildEncrypted(t, id, func(tw *tar.Writer) { sampleArchive(t, tw) })
+	if err := RestoreReader(bytes.NewReader(data), t.TempDir(), nil); err == nil {
+		t.Fatal("expected an error when no identity is supplied")
+	}
+}
+
+func TestRestoreReaderRejectsTraversal(t *testing.T) {
+	id, _ := age.GenerateX25519Identity()
+	data := buildEncrypted(t, id, func(tw *tar.Writer) {
+		writeHeader(t, tw, "../evil.txt", tar.TypeReg, 0o644, int64(len("x")), "")
+		if _, err := tw.Write([]byte("x")); err != nil {
+			t.Fatal(err)
+		}
+	})
+	base := t.TempDir()
+	out := filepath.Join(base, "out")
+	if err := RestoreReader(bytes.NewReader(data), out, []age.Identity{id}); err == nil {
+		t.Fatal("expected traversal to be rejected")
+	}
+	if _, err := os.Stat(filepath.Join(base, "evil.txt")); err == nil {
+		t.Fatal("traversal escaped the output directory")
+	}
+}

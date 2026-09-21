@@ -30,20 +30,15 @@ func (a *App) cmdRestore(args []string) error {
 	fs.StringVar(&output, "o", ".", "directory to restore into")
 	fs.Var(&identities, "identity", "age identity file (repeatable)")
 	fs.Usage = func() {
-		fmt.Fprintln(a.Stderr, "usage: backup restore <snapshot> [--output dir] [--identity path]")
+		fmt.Fprintln(a.Stderr, "usage: backup restore <snapshot|file> [--output dir] [--identity path]")
 	}
 	if err := fs.Parse(reorderArgs(fs, args)); err != nil {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return fmt.Errorf("restore requires exactly one snapshot name")
+		return fmt.Errorf("restore requires exactly one snapshot name or file path")
 	}
 	name := fs.Arg(0)
-
-	cfg, err := cf.loadConfig()
-	if err != nil {
-		return err
-	}
 
 	ids := []string(identities)
 	if len(ids) == 0 {
@@ -53,6 +48,26 @@ func (a *App) cmdRestore(args []string) error {
 		return fmt.Errorf("no age identity supplied (use --identity or BACKUP_AGE_IDENTITY)")
 	}
 	parsed, err := restore.LoadIdentities(ids)
+	if err != nil {
+		return err
+	}
+
+	// A local snapshot file is restored directly, without opening storage or
+	// loading the configuration.
+	if fi, err := os.Stat(name); err == nil {
+		if fi.IsDir() {
+			return fmt.Errorf("%s is a directory, not a snapshot file", name)
+		}
+		if err := restore.RestoreFile(name, output, parsed); err != nil {
+			return err
+		}
+		fmt.Fprintf(a.Stdout, "Restored %s to %s\n", name, output)
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	cfg, err := cf.loadConfig()
 	if err != nil {
 		return err
 	}
