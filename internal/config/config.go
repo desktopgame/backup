@@ -15,7 +15,9 @@ const (
 	DefaultIgnore   = ".backupignore"
 	StorageLocal    = "local"
 	StorageFTP      = "ftp"
+	StorageSFTP     = "sftp"
 	DefaultFTPPort  = 21
+	DefaultSFTPPort = 22
 	DefaultDaily    = 7
 	DefaultWeekly   = 4
 	DefaultMonthly  = 6
@@ -33,6 +35,12 @@ type Storage struct {
 	Username string `toml:"username"`
 	Password string `toml:"password"`
 	Path     string `toml:"path"`
+
+	// SFTP specific.
+	PrivateKey                string `toml:"private_key"`
+	Passphrase                string `toml:"passphrase"`
+	KnownHosts                string `toml:"known_hosts"`
+	InsecureSkipHostKeyVerify bool   `toml:"insecure_skip_host_key_verify"`
 }
 
 type Rotation struct {
@@ -146,6 +154,9 @@ func (c *Config) expand() {
 	c.Storage.Username = expandEnv(c.Storage.Username)
 	c.Storage.Password = expandEnv(c.Storage.Password)
 	c.Storage.Path = expandEnv(c.Storage.Path)
+	c.Storage.PrivateKey = expandEnv(c.Storage.PrivateKey)
+	c.Storage.Passphrase = expandEnv(c.Storage.Passphrase)
+	c.Storage.KnownHosts = expandEnv(c.Storage.KnownHosts)
 	for i := range c.Paths {
 		c.Paths[i].Name = expandEnv(c.Paths[i].Name)
 		c.Paths[i].Source = expandEnv(c.Paths[i].Source)
@@ -154,27 +165,31 @@ func (c *Config) expand() {
 
 func (c *Config) resolveSources() {
 	for i := range c.Paths {
-		src := c.Paths[i].Source
-		if src == "" {
-			continue
-		}
-		src = ExpandHome(src)
-		if !filepath.IsAbs(src) {
-			src = filepath.Join(c.dir, src)
-		}
-		c.Paths[i].Source = filepath.Clean(src)
+		c.Paths[i].Source = c.resolvePath(c.Paths[i].Source)
 	}
 }
 
-func (c *Config) resolveStorage() {
-	if strings.ToLower(strings.TrimSpace(c.Storage.Type)) != StorageLocal {
-		return
+// resolvePath expands a leading "~" and resolves relative paths against the
+// configuration file directory.
+func (c *Config) resolvePath(p string) string {
+	if p == "" {
+		return ""
 	}
-	p := ExpandHome(c.Storage.Path)
-	if p != "" && !filepath.IsAbs(p) {
+	p = ExpandHome(p)
+	if !filepath.IsAbs(p) {
 		p = filepath.Join(c.dir, p)
 	}
-	c.Storage.Path = filepath.Clean(p)
+	return filepath.Clean(p)
+}
+
+func (c *Config) resolveStorage() {
+	switch strings.ToLower(strings.TrimSpace(c.Storage.Type)) {
+	case StorageLocal:
+		c.Storage.Path = c.resolvePath(c.Storage.Path)
+	case StorageSFTP:
+		c.Storage.PrivateKey = c.resolvePath(c.Storage.PrivateKey)
+		c.Storage.KnownHosts = c.resolvePath(c.Storage.KnownHosts)
+	}
 }
 
 func expandEnv(s string) string {
@@ -268,8 +283,21 @@ func (s Storage) validate() error {
 		if s.Port < 0 || s.Port > 65535 {
 			return fmt.Errorf("storage: invalid port %d", s.Port)
 		}
+	case StorageSFTP:
+		if strings.TrimSpace(s.Host) == "" {
+			return fmt.Errorf("storage: host is required for sftp storage")
+		}
+		if strings.TrimSpace(s.Username) == "" {
+			return fmt.Errorf("storage: username is required for sftp storage")
+		}
+		if strings.TrimSpace(s.Password) == "" && strings.TrimSpace(s.PrivateKey) == "" {
+			return fmt.Errorf("storage: sftp requires private_key or password")
+		}
+		if s.Port < 0 || s.Port > 65535 {
+			return fmt.Errorf("storage: invalid port %d", s.Port)
+		}
 	default:
-		return fmt.Errorf("storage: unsupported type %q (want %q or %q)", s.Type, StorageLocal, StorageFTP)
+		return fmt.Errorf("storage: unsupported type %q (want %q, %q or %q)", s.Type, StorageLocal, StorageFTP, StorageSFTP)
 	}
 	return nil
 }

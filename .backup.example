@@ -24,7 +24,7 @@ recipient = "age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 # ]
 
 [storage]
-# 保存先の種類: "local" または "ftp"
+# 保存先の種類: "local" / "ftp" / "sftp"
 
 # --- local（ローカルディレクトリ） ---
 type = "local"
@@ -37,6 +37,17 @@ path = 'C:\Backups\store'
 # username = "backup"
 # password = "${BACKUP_FTP_PASSWORD}"   # 秘密は環境変数から展開
 # path = "/device/backup"               # サーバーが公開しているディレクトリに合わせる
+
+# --- sftp（SSH。VPS から自宅サーバーへ送る場合など） ---
+# type = "sftp"
+# host = "home.example.net"
+# port = 22
+# username = "backup"
+# private_key = '~/.ssh/id_ed25519'     # 公開鍵認証を推奨（password でも可）
+# passphrase = "${BACKUP_SSH_PASSPHRASE}"  # 秘密鍵が暗号化されている場合のみ
+# path = "/srv/backup/desktop"          # 無ければ作成される
+# known_hosts = '~/.ssh/known_hosts'    # 省略時は ~/.ssh/known_hosts を使用
+# insecure_skip_host_key_verify = false # true は非推奨（ホスト鍵検証を無効化）
 
 # 保持ポリシー。省略時は daily=7, weekly=4, monthly=6。
 [rotation]

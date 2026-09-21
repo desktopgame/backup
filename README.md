@@ -29,7 +29,7 @@
   最終名へリネームします。
 - 日次／週次／月次のローテーション（`rotation`）と `prune --dry-run`。
 - 同じバイナリで復元。age の秘密鍵は別途指定します。
-- ストレージは `local` と `ftp` に対応。
+- ストレージは `local` / `ftp` / `sftp` に対応。
 - Windows / Linux（amd64 / arm64）。
 
 ## 必要なもの
@@ -238,6 +238,54 @@ FTP の `path` はサーバーが公開している構成に依存し、アプ�
 確認するには、何か FTP クライアントで接続してディレクトリを一覧するか、
 `path = "/"` にして `backup check` を実行してください。
 
+`type = "sftp"`
+
+SSH 経由でアップロードします。VPS から自宅サーバーへ送る場合など、平文の
+認証情報を流したくない経路に向きます。
+
+| キー | 説明 |
+| --- | --- |
+| `host` | サーバーのホスト |
+| `port` | サーバーのポート（既定 22） |
+| `username` | SSH ユーザー |
+| `password` | パスワード認証（任意。環境変数の利用を推奨） |
+| `private_key` | 秘密鍵ファイルのパス（`password` の代わり、または併用） |
+| `passphrase` | 秘密鍵が暗号化されている場合のパスフレーズ（任意） |
+| `path` | スナップショットを置くリモートディレクトリ（無ければ作成） |
+| `known_hosts` | ホスト鍵検証に使う known_hosts ファイル（任意） |
+| `insecure_skip_host_key_verify` | `true` でホスト鍵検証を無効化（非推奨） |
+
+`private_key` と `known_hosts` は `~` 展開と、設定ファイルのディレクトリを
+基準とした相対パス解決に対応します。
+
+認証は `private_key`（公開鍵認証）を推奨します。`password` を併用した場合は
+両方が試されます。`private_key` も `password` も無い場合はエラーになります。
+
+ホスト鍵は既定で `~/.ssh/known_hosts` を検証に使います。ファイルが無い
+場合はエラーになるため、`known_hosts` を明示するか、検証済みのサーバーで
+のみ `insecure_skip_host_key_verify = true` を設定してください。MITM を防ぐ
+ため、無効化は推奨しません。
+
+例（VPS から自宅へ、公開鍵認証）:
+
+```toml
+[storage]
+type = "sftp"
+host = "home.example.net"
+port = 22
+username = "backup"
+private_key = '~/.ssh/id_ed25519'
+path = "/srv/backup/desktop"
+
+[rotation]
+daily = 7
+weekly = 4
+monthly = 6
+```
+
+自宅側の `~/.ssh/authorized_keys` に、VPS の公開鍵を登録しておきます。秘密鍵は
+VPS に置きますが、age の identity は置きません。
+
 ### 環境変数の展開
 
 `recipient`、`recipients`、`[storage]` の各文字列、各 `[[path]]` の
@@ -249,8 +297,9 @@ FTP の `path` はサーバーが公開している構成に依存し、アプ�
 password = "${BACKUP_FTP_PASSWORD}"
 ```
 
-`local` ストレージの `path` と `source` では、先頭の `~` がホームディレクトリ
-に展開されます。
+`local` ストレージの `path`、`sftp` ストレージの `private_key` /
+`known_hosts`、および `source` では、先頭の `~` がホームディレクトリに
+展開されます。
 
 ## ignore ルール
 
@@ -327,7 +376,7 @@ backup restore desktop-20260921-170000.tar.zst.age --output ./restore --identity
 
 FTP の認証情報は FTP 自体では保護されないため、FTP は信頼できるローカル
 ネットワークか VPN 上でのみ使ってください。ペイロードはすでに暗号化されて
-います。トランスポートの強化が必要になれば SFTP を追加できます。独自の
+います。トランスポートそのものも保護したい場合は SFTP を使います。独自の
 暗号は実装していません。
 
 ## ログと進捗
@@ -378,7 +427,7 @@ internal/config         設定の読み込みと検証
 internal/ignore         gitignore 風マッチャ
 internal/archive        バックアップ元の列挙と tar 書き出し
 internal/pipeline       tar -> zstd -> age のストリーム
-internal/storage        ストレージ interface、local / ftp バックエンド
+internal/storage        ストレージ interface、local / ftp / sftp バックエンド
 internal/rotation       日次／週次／月次の保持
 internal/restore        復号・展開と安全な取り出し
 internal/snapshot       スナップショット名の生成と解析
