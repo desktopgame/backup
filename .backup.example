@@ -1,0 +1,67 @@
+# backup の設定ファイル例
+#
+# 実際に使うときは、このファイルを ~/.backup にコピーして値を書き換えてください。
+#   Windows: C:\Users\<user>\.backup
+#   Linux:   ~/.backup
+#
+# 値の中では ${VAR} / $VAR の環境変数展開が使えます（秘密情報はこちらを推奨）。
+# パスは Windows / Linux どちらの構文でも書けます。
+# Windows のパスは TOML のリテラル文字列（'...'）を使うとエスケープが不要です。
+
+# スナップショット名の接頭辞。省略時はホスト名を整形したものが使われます。
+# 生成例: desktop-20260921-170000.tar.zst.age
+machine = "desktop"
+
+# age の公開鍵（recipient）。秘密鍵は不要です。
+# 生成: backup keygen -o identity.txt  （表示される "public key:" の値）
+recipient = "age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# 複数の recipient を使う場合はこちら（すべてに暗号化されます）。
+# recipient と併用も可能です。
+# recipients = [
+#   "age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+#   "age1yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+# ]
+
+[storage]
+# 保存先の種類: "local" または "ftp"
+
+# --- local（ローカルディレクトリ） ---
+type = "local"
+path = 'C:\Backups\store'
+
+# --- ftp（Android のファイルマネージャ等が公開する FTP） ---
+# type = "ftp"
+# host = "192.168.1.100"
+# port = 2121
+# username = "backup"
+# password = "${BACKUP_FTP_PASSWORD}"   # 秘密は環境変数から展開
+# path = "/device/backup"               # サーバーが公開しているディレクトリに合わせる
+
+# 保持ポリシー。省略時は daily=7, weekly=4, monthly=6。
+[rotation]
+daily = 7     # 直近の日数: 1日につき1つ
+weekly = 4    # その前の週数: 1週につき1つ
+monthly = 6   # その前の月数: 1か月につき1つ
+
+# バックアップするパス。複数書けます。name は重複不可。
+# name がアーカイブ直下の名前になり、元マシンの絶対パスは残りません。
+# source はディレクトリでも単一ファイルでも構いません。
+
+[[path]]
+name = "vps"
+source = 'C:\Users\example\Work\VPS'
+
+[[path]]
+name = "pubmir"
+source = 'C:\Users\example\Work\Repository\pubmir'
+
+# 単一ファイルの例
+[[path]]
+name = "ssh-config"
+source = 'C:\Users\example\.ssh\config'
+
+# Linux の場合の例:
+# [[path]]
+# name = "vps"
+# source = "/home/example/Work/VPS"

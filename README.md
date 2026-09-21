@@ -99,6 +99,8 @@ source = 'C:\Users\example\.ssh\config'
 Windows のパスは TOML のリテラル文字列（`'...'`）が楽です。基本文字列を使う
 場合はバックスラッシュをエスケープします（`"C:\\Users\\example"`）。
 
+リポジトリ直下の `.backup.example` をコピーして書き換えることもできます。
+
 ### 3. ignore ファイルを作る
 
 既定の場所は `~/.backupignore` です。
