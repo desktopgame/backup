@@ -114,14 +114,17 @@ func addCommon(fs *flag.FlagSet, c *commonFlags) {
 	fs.BoolVar(&c.verbose, "verbose", false, "verbose output")
 }
 
+func (c commonFlags) configFile() (string, error) {
+	if c.configPath != "" {
+		return c.configPath, nil
+	}
+	return config.DefaultConfigPath()
+}
+
 func (c commonFlags) loadConfig() (*config.Config, error) {
-	path := c.configPath
-	if path == "" {
-		p, err := config.DefaultConfigPath()
-		if err != nil {
-			return nil, err
-		}
-		path = p
+	path, err := c.configFile()
+	if err != nil {
+		return nil, err
 	}
 	return config.Load(path)
 }

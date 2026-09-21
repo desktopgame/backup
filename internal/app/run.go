@@ -41,6 +41,17 @@ func (a *App) cmdRun(args []string) error {
 		return err
 	}
 
+	if cf.verbose {
+		cfgFile, _ := cf.configFile()
+		fmt.Fprintf(a.Stdout, "config: %s\n", cfgFile)
+		fmt.Fprintf(a.Stdout, "machine: %s\n", cfg.Machine)
+		fmt.Fprintf(a.Stdout, "storage: %s\n", cfg.Storage.Type)
+		fmt.Fprintf(a.Stdout, "recipients: %d\n", len(recipients))
+		for _, p := range cfg.Paths {
+			fmt.Fprintf(a.Stdout, "path %s: %s\n", p.Name, p.Source)
+		}
+	}
+
 	sources := make([]archive.Source, len(cfg.Paths))
 	for i, p := range cfg.Paths {
 		sources[i] = archive.Source{Name: p.Name, Root: p.Source}
