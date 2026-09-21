@@ -63,6 +63,8 @@ func (a *App) Main(args []string) int {
 		err = a.cmdPrune(args[1:])
 	case "restore":
 		err = a.cmdRestore(args[1:])
+	case "keygen":
+		err = a.cmdKeygen(args[1:])
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.Stdout, "backup %s\n", Version)
 		return 0
@@ -91,6 +93,7 @@ commands:
   list      list available snapshots
   prune     apply retention rules
   restore   restore a snapshot
+  keygen    generate an age identity and recipient
   version   print the version
 
 flags are command specific; run "backup <command> -h" for details.
