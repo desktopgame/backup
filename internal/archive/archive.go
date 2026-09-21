@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"backup/internal/ignore"
+	"github.com/desktopgame/backup/internal/ignore"
 )
 
 // Type describes the kind of archived entry.

@@ -11,7 +11,7 @@ import (
 
 	"filippo.io/age"
 
-	"backup/internal/snapshot"
+	"github.com/desktopgame/backup/internal/snapshot"
 )
 
 func TestEndToEnd(t *testing.T) {

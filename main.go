@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"backup/internal/app"
+	"github.com/desktopgame/backup/internal/app"
 )
 
 func main() {

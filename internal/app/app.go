@@ -13,9 +13,9 @@ import (
 
 	"filippo.io/age"
 
-	"backup/internal/config"
-	"backup/internal/ignore"
-	"backup/internal/rotation"
+	"github.com/desktopgame/backup/internal/config"
+	"github.com/desktopgame/backup/internal/ignore"
+	"github.com/desktopgame/backup/internal/rotation"
 )
 
 // Version is the CLI version string.

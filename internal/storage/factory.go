@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"backup/internal/config"
+	"github.com/desktopgame/backup/internal/config"
 )
 
 // Open connects to the backend described by the configuration.

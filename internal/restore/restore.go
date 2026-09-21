@@ -14,7 +14,7 @@ import (
 	"filippo.io/age"
 	"github.com/klauspost/compress/zstd"
 
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 // Restore streams the named snapshot from st into outDir.

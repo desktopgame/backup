@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 func (a *App) cmdList(args []string) error {

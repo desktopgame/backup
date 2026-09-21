@@ -11,8 +11,8 @@ import (
 
 	"filippo.io/age"
 
-	"backup/internal/pipeline"
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/pipeline"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 func buildEncrypted(t *testing.T, id *age.X25519Identity, build func(*tar.Writer)) []byte {

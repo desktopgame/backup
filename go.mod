@@ -1,4 +1,4 @@
-module backup
+module github.com/desktopgame/backup
 
 go 1.25.0
 

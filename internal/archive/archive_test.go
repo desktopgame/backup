@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"backup/internal/ignore"
+	"github.com/desktopgame/backup/internal/ignore"
 )
 
 func writeFile(t *testing.T, path, content string) {

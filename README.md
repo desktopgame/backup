@@ -37,9 +37,36 @@
 - ビルドには Go 1.25 以降。
 - age の X25519 鍵ペア。`backup keygen` で生成できます（後述）。
 
-## ビルド
+## インストール
+
+### go install を使う
+
+Go 1.25 以降が必要です。
 
 ```sh
+go install github.com/desktopgame/backup@latest
+```
+
+`backup`（Windows では `backup.exe`）が `GOBIN`（未設定なら
+`$GOPATH/bin`）にインストールされます。
+
+- Linux / macOS: 既定で `~/go/bin`。`export PATH="$HOME/go/bin:$PATH"` などで
+  PATH を通してください。
+- Windows: 既定で `%USERPROFILE%\go\bin`。PATH に追加してください。
+
+特定バージョンを指定する場合:
+
+```sh
+go install github.com/desktopgame/backup@v0.1.0
+```
+
+### ソースからビルドする
+
+リポジトリを取得してビルドします。
+
+```sh
+git clone https://github.com/desktopgame/backup.git
+cd backup
 go build -o backup .
 ```
 

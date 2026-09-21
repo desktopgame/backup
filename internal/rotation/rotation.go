@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"backup/internal/snapshot"
+	"github.com/desktopgame/backup/internal/snapshot"
 )
 
 // Policy describes how many representative snapshots to keep per period.

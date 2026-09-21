@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"backup/internal/archive"
-	"backup/internal/pipeline"
-	"backup/internal/rotation"
-	"backup/internal/snapshot"
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/archive"
+	"github.com/desktopgame/backup/internal/pipeline"
+	"github.com/desktopgame/backup/internal/rotation"
+	"github.com/desktopgame/backup/internal/snapshot"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 func (a *App) cmdRun(args []string) error {

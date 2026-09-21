@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 func (a *App) cmdPrune(args []string) error {

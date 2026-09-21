@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"backup/internal/restore"
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/restore"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 type stringList []string

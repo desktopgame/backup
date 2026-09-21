@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"backup/internal/snapshot"
+	"github.com/desktopgame/backup/internal/snapshot"
 )
 
 func snap(t *testing.T, machine string, y int, mo time.Month, d, h int) snapshot.Snapshot {

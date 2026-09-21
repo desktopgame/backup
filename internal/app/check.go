@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"backup/internal/storage"
+	"github.com/desktopgame/backup/internal/storage"
 )
 
 func (a *App) cmdCheck(args []string) error {
